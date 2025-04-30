@@ -122,16 +122,12 @@
 </head>
 <body>
   <div class="score-container">Score: <span id="score">0</span></div>
-  <!-- Audio elements for each sound -->
-  <audio id="popSound1" preload="auto">
-    <source src="audio/Heritage.mp3" type="audio/mp3">
-  </audio>
-  <audio id="popSound2" preload="auto">
-    <source src="audio/Alright.mp3" type="audio/mp3">
-  </audio>
-  <audio id="popSound3" preload="auto">
-    <source src="audio/Beautiful_smile.mp3" type="audio/mp3">
-  </audio>
+  
+  <!-- Audio elements with explicit preload -->
+  <audio id="popSound1" preload="auto" src="audio/Heritage.mp3"></audio>
+  <audio id="popSound2" preload="auto" src="audio/Alright.mp3"></audio>
+  <audio id="popSound3" preload="auto" src="audio/Beautiful_smile.mp3"></audio>
+
   <div class="container">
     <div class="image-container">
       <img src="images/GG.png" alt="My Girlfriend">
@@ -143,6 +139,7 @@
     document.addEventListener('DOMContentLoaded', function() {
       let score = 0;
       let currentSoundIndex = 0;
+      let soundsLoaded = false;
       const scoreElement = document.getElementById('score');
       const popSounds = [
         document.getElementById('popSound1'),
@@ -150,45 +147,60 @@
         document.getElementById('popSound3')
       ];
 
-      // Set initial volume for all sounds
-      popSounds.forEach(sound => {
-        sound.volume = 1.0; // Maximum volume
-      });
-
-      // Function to play sound and cycle to next sound
-      function playPopSound() {
-        const soundClone = popSounds[currentSoundIndex].cloneNode(true);
-        soundClone.volume = 1.0; // Ensure maximum volume on clone
-        
-        // Add error handling and logging
-        soundClone.addEventListener('error', function(e) {
-          console.error('Error playing sound:', e);
-        });
-
-        // Log when sound starts playing
-        soundClone.addEventListener('play', function() {
-          console.log('Sound started playing:', currentSoundIndex + 1);
-        });
-
-        // Log when sound ends
-        soundClone.addEventListener('ended', function() {
-          console.log('Sound finished playing:', currentSoundIndex + 1);
-          this.remove();
-        });
-
-        // Force sound to play
-        const playPromise = soundClone.play();
-        if (playPromise !== undefined) {
-          playPromise.then(() => {
-            // Playback started successfully
-          }).catch(error => {
-            console.error('Playback failed:', error);
+      // Initialize sounds
+      function initSounds() {
+        popSounds.forEach(sound => {
+          sound.load(); // Force load
+          sound.volume = 1.0;
+          
+          // Create buffer for each sound
+          sound.addEventListener('canplaythrough', () => {
+            console.log('Sound loaded:', sound.src);
           });
-        }
 
-        // Cycle to next sound
-        currentSoundIndex = (currentSoundIndex + 1) % popSounds.length;
+          sound.addEventListener('error', (e) => {
+            console.error('Error loading sound:', e);
+          });
+        });
       }
+
+      // Function to play sound with better error handling
+      function playPopSound() {
+        const sound = popSounds[currentSoundIndex];
+        
+        try {
+          // Reset the sound to start
+          sound.currentTime = 0;
+          
+          // Play the sound
+          const playPromise = sound.play();
+          
+          if (playPromise !== undefined) {
+            playPromise.then(() => {
+              console.log('Playing sound:', currentSoundIndex + 1);
+            }).catch(error => {
+              console.error('Playback failed:', error);
+            });
+          }
+          
+          // Cycle to next sound
+          currentSoundIndex = (currentSoundIndex + 1) % popSounds.length;
+          
+        } catch (error) {
+          console.error('Error playing sound:', error);
+        }
+      }
+
+      // Initialize sounds on first click anywhere
+      let initialized = false;
+      document.addEventListener('click', function initializeAudio() {
+        if (!initialized) {
+          initialized = true;
+          initSounds();
+          document.removeEventListener('click', initializeAudio);
+          console.log('Audio initialized');
+        }
+      }, { once: true });
 
       function createHeart() {
         const heart = document.createElement('div');
@@ -201,13 +213,7 @@
           if (!this.classList.contains('popped')) {
             e.stopPropagation();
             
-            // Try to play sound and log any issues
-            try {
-              playPopSound();
-              console.log('Triggered sound:', currentSoundIndex);
-            } catch (error) {
-              console.error('Error triggering sound:', error);
-            }
+            playPopSound();
             
             score += 1;
             scoreElement.textContent = score;
@@ -245,11 +251,6 @@
       for(let i = 0; i < 5; i++) {
         setTimeout(createHeart, i * 500);
       }
-
-      // Test sound loading
-      popSounds.forEach((sound, index) => {
-        console.log(`Sound ${index + 1} loaded:`, sound.readyState);
-      });
     });
   </script>
 </body>
