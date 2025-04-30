@@ -150,15 +150,41 @@
         document.getElementById('popSound3')
       ];
 
+      // Set initial volume for all sounds
+      popSounds.forEach(sound => {
+        sound.volume = 1.0; // Maximum volume
+      });
+
       // Function to play sound and cycle to next sound
       function playPopSound() {
         const soundClone = popSounds[currentSoundIndex].cloneNode(true);
-        soundClone.play();
+        soundClone.volume = 1.0; // Ensure maximum volume on clone
         
-        // Remove the clone after it's done playing
+        // Add error handling and logging
+        soundClone.addEventListener('error', function(e) {
+          console.error('Error playing sound:', e);
+        });
+
+        // Log when sound starts playing
+        soundClone.addEventListener('play', function() {
+          console.log('Sound started playing:', currentSoundIndex + 1);
+        });
+
+        // Log when sound ends
         soundClone.addEventListener('ended', function() {
+          console.log('Sound finished playing:', currentSoundIndex + 1);
           this.remove();
         });
+
+        // Force sound to play
+        const playPromise = soundClone.play();
+        if (playPromise !== undefined) {
+          playPromise.then(() => {
+            // Playback started successfully
+          }).catch(error => {
+            console.error('Playback failed:', error);
+          });
+        }
 
         // Cycle to next sound
         currentSoundIndex = (currentSoundIndex + 1) % popSounds.length;
@@ -175,7 +201,13 @@
           if (!this.classList.contains('popped')) {
             e.stopPropagation();
             
-            playPopSound();
+            // Try to play sound and log any issues
+            try {
+              playPopSound();
+              console.log('Triggered sound:', currentSoundIndex);
+            } catch (error) {
+              console.error('Error triggering sound:', error);
+            }
             
             score += 1;
             scoreElement.textContent = score;
@@ -213,6 +245,11 @@
       for(let i = 0; i < 5; i++) {
         setTimeout(createHeart, i * 500);
       }
+
+      // Test sound loading
+      popSounds.forEach((sound, index) => {
+        console.log(`Sound ${index + 1} loaded:`, sound.readyState);
+      });
     });
   </script>
 </body>
