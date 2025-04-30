@@ -55,7 +55,9 @@
       z-index: 1;
       cursor: pointer;
       user-select: none;
-      transition: transform 0.1s;
+      -webkit-user-select: none;  /* Safari */
+      -webkit-touch-callout: none; /* iOS Safari */
+      touch-action: manipulation;  /* Disable double-tap zoom */
     }
     .heart:hover {
       transform: scale(1.2);
@@ -155,54 +157,43 @@
         document.getElementById('popSound3')
       ];
 
-      // Debug audio loading
-      popSounds.forEach((sound, index) => {
-        sound.addEventListener('loadeddata', () => {
-          console.log(`Sound ${index + 1} loaded successfully`);
-        });
-        
-        sound.addEventListener('error', (e) => {
-          console.error(`Error loading sound ${index + 1}:`, e);
-          // Try to show the specific error
-          const sourceElement = e.target.querySelector('source');
-          if (sourceElement) {
-            console.error('Source error:', sourceElement.error);
-          }
-        });
-      });
+      // Initialize audio context for mobile
+      let audioContext;
+      
+      function initAudioContext() {
+        if (!audioContext) {
+          audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          console.log('AudioContext initialized');
+        }
+      }
 
-      // Function to play sound
+      // Function to play sound with mobile support
       async function playPopSound() {
-        const sound = popSounds[currentSoundIndex];
-        
         try {
+          initAudioContext();
+          const sound = popSounds[currentSoundIndex];
           sound.currentTime = 0;
           await sound.play();
           console.log(`Playing sound ${currentSoundIndex + 1}`);
-          
-          // Cycle to next sound
           currentSoundIndex = (currentSoundIndex + 1) % popSounds.length;
         } catch (error) {
           console.error('Error playing sound:', error);
         }
       }
 
-      // Initialize audio on first user interaction
-      function initAudio() {
-        console.log('Initializing audio...');
-        popSounds.forEach((sound, index) => {
-          sound.load();
-          sound.volume = 1.0;
-          console.log(`Initialized sound ${index + 1}`);
-        });
+      function handleInteraction(e) {
+        initAudioContext();
+        // Resume audio context on mobile
+        if (audioContext && audioContext.state !== 'running') {
+          audioContext.resume();
+        }
+        document.removeEventListener('touchstart', handleInteraction);
+        document.removeEventListener('click', handleInteraction);
       }
 
-      // Wait for first click to initialize audio
-      document.addEventListener('click', function startAudio() {
-        console.log('First click detected, starting audio...');
-        initAudio();
-        document.removeEventListener('click', startAudio);
-      }, { once: true });
+      // Listen for both touch and click events
+      document.addEventListener('touchstart', handleInteraction);
+      document.addEventListener('click', handleInteraction);
 
       function createHeart() {
         const heart = document.createElement('div');
@@ -211,33 +202,29 @@
         heart.style.left = Math.random() * 90 + 5 + 'vw';
         heart.style.animationDuration = (Math.random() * 4.5 + 4.5) + 's';
         
-        heart.onclick = async function(e) {
-          if (!this.classList.contains('popped')) {
-            e.stopPropagation();
-            
-            await playPopSound();
-            
+        // Handle both touch and click events
+        function popHeart(e) {
+          e.preventDefault(); // Prevent default touch behavior
+          if (!heart.classList.contains('popped')) {
+            playPopSound();
             score += 1;
             scoreElement.textContent = score;
-            
-            this.classList.add('popped');
+            heart.classList.add('popped');
             
             const popText = document.createElement('div');
             popText.className = 'pop-text';
             popText.textContent = '+1';
-            popText.style.left = this.style.left;
-            popText.style.top = (this.getBoundingClientRect().top - 20) + 'px';
+            popText.style.left = heart.style.left;
+            popText.style.top = (heart.getBoundingClientRect().top - 20) + 'px';
             document.body.appendChild(popText);
             
-            setTimeout(() => {
-              popText.remove();
-            }, 1000);
-            
-            setTimeout(() => {
-              this.remove();
-            }, 300);
+            setTimeout(() => popText.remove(), 1000);
+            setTimeout(() => heart.remove(), 300);
           }
-        };
+        }
+
+        heart.addEventListener('touchstart', popHeart, { passive: false });
+        heart.addEventListener('click', popHeart);
         
         document.body.appendChild(heart);
         
