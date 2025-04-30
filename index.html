@@ -124,9 +124,18 @@
   <div class="score-container">Score: <span id="score">0</span></div>
   
   <!-- Audio elements with explicit preload -->
-  <audio id="popSound1" preload="auto" src="audio/Heritage.mp3"></audio>
-  <audio id="popSound2" preload="auto" src="audio/Alright.mp3"></audio>
-  <audio id="popSound3" preload="auto" src="audio/Beautiful_smile.mp3"></audio>
+  <audio id="popSound1" preload="auto">
+    <source src="/audio/Heritage.mp3" type="audio/mpeg">
+    <source src="audio/Heritage.mp3" type="audio/mpeg">
+  </audio>
+  <audio id="popSound2" preload="auto">
+    <source src="/audio/Alright.mp3" type="audio/mpeg">
+    <source src="audio/Alright.mp3" type="audio/mpeg">
+  </audio>
+  <audio id="popSound3" preload="auto">
+    <source src="/audio/Beautiful_smile.mp3" type="audio/mpeg">
+    <source src="audio/Beautiful_smile.mp3" type="audio/mpeg">
+  </audio>
 
   <div class="container">
     <div class="image-container">
@@ -139,7 +148,6 @@
     document.addEventListener('DOMContentLoaded', function() {
       let score = 0;
       let currentSoundIndex = 0;
-      let soundsLoaded = false;
       const scoreElement = document.getElementById('score');
       const popSounds = [
         document.getElementById('popSound1'),
@@ -147,59 +155,53 @@
         document.getElementById('popSound3')
       ];
 
-      // Initialize sounds
-      function initSounds() {
-        popSounds.forEach(sound => {
-          sound.load(); // Force load
-          sound.volume = 1.0;
-          
-          // Create buffer for each sound
-          sound.addEventListener('canplaythrough', () => {
-            console.log('Sound loaded:', sound.src);
-          });
-
-          sound.addEventListener('error', (e) => {
-            console.error('Error loading sound:', e);
-          });
+      // Debug audio loading
+      popSounds.forEach((sound, index) => {
+        sound.addEventListener('loadeddata', () => {
+          console.log(`Sound ${index + 1} loaded successfully`);
         });
-      }
+        
+        sound.addEventListener('error', (e) => {
+          console.error(`Error loading sound ${index + 1}:`, e);
+          // Try to show the specific error
+          const sourceElement = e.target.querySelector('source');
+          if (sourceElement) {
+            console.error('Source error:', sourceElement.error);
+          }
+        });
+      });
 
-      // Function to play sound with better error handling
-      function playPopSound() {
+      // Function to play sound
+      async function playPopSound() {
         const sound = popSounds[currentSoundIndex];
         
         try {
-          // Reset the sound to start
           sound.currentTime = 0;
-          
-          // Play the sound
-          const playPromise = sound.play();
-          
-          if (playPromise !== undefined) {
-            playPromise.then(() => {
-              console.log('Playing sound:', currentSoundIndex + 1);
-            }).catch(error => {
-              console.error('Playback failed:', error);
-            });
-          }
+          await sound.play();
+          console.log(`Playing sound ${currentSoundIndex + 1}`);
           
           // Cycle to next sound
           currentSoundIndex = (currentSoundIndex + 1) % popSounds.length;
-          
         } catch (error) {
           console.error('Error playing sound:', error);
         }
       }
 
-      // Initialize sounds on first click anywhere
-      let initialized = false;
-      document.addEventListener('click', function initializeAudio() {
-        if (!initialized) {
-          initialized = true;
-          initSounds();
-          document.removeEventListener('click', initializeAudio);
-          console.log('Audio initialized');
-        }
+      // Initialize audio on first user interaction
+      function initAudio() {
+        console.log('Initializing audio...');
+        popSounds.forEach((sound, index) => {
+          sound.load();
+          sound.volume = 1.0;
+          console.log(`Initialized sound ${index + 1}`);
+        });
+      }
+
+      // Wait for first click to initialize audio
+      document.addEventListener('click', function startAudio() {
+        console.log('First click detected, starting audio...');
+        initAudio();
+        document.removeEventListener('click', startAudio);
       }, { once: true });
 
       function createHeart() {
@@ -209,11 +211,11 @@
         heart.style.left = Math.random() * 90 + 5 + 'vw';
         heart.style.animationDuration = (Math.random() * 4.5 + 4.5) + 's';
         
-        heart.onclick = function(e) {
+        heart.onclick = async function(e) {
           if (!this.classList.contains('popped')) {
             e.stopPropagation();
             
-            playPopSound();
+            await playPopSound();
             
             score += 1;
             scoreElement.textContent = score;
