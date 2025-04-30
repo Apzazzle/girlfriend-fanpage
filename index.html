@@ -122,6 +122,16 @@
 </head>
 <body>
   <div class="score-container">Score: <span id="score">0</span></div>
+  <!-- Audio elements for each sound -->
+  <audio id="popSound1" preload="auto">
+    <source src="audio/Heritage.mp3" type="audio/mp3">
+  </audio>
+  <audio id="popSound2" preload="auto">
+    <source src="audio/Alright.mp3" type="audio/mp3">
+  </audio>
+  <audio id="popSound3" preload="auto">
+    <source src="audio/Beautiful_smile.mp3" type="audio/mp3">
+  </audio>
   <div class="container">
     <div class="image-container">
       <img src="images/GG.png" alt="My Girlfriend">
@@ -132,7 +142,27 @@
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       let score = 0;
+      let currentSoundIndex = 0;
       const scoreElement = document.getElementById('score');
+      const popSounds = [
+        document.getElementById('popSound1'),
+        document.getElementById('popSound2'),
+        document.getElementById('popSound3')
+      ];
+
+      // Function to play sound and cycle to next sound
+      function playPopSound() {
+        const soundClone = popSounds[currentSoundIndex].cloneNode(true);
+        soundClone.play();
+        
+        // Remove the clone after it's done playing
+        soundClone.addEventListener('ended', function() {
+          this.remove();
+        });
+
+        // Cycle to next sound
+        currentSoundIndex = (currentSoundIndex + 1) % popSounds.length;
+      }
 
       function createHeart() {
         const heart = document.createElement('div');
@@ -143,17 +173,15 @@
         
         heart.onclick = function(e) {
           if (!this.classList.contains('popped')) {
-            // Prevent the click from triggering multiple times
             e.stopPropagation();
             
-            // Increment score
+            playPopSound();
+            
             score += 1;
             scoreElement.textContent = score;
             
-            // Pop animation
             this.classList.add('popped');
             
-            // Create pop text
             const popText = document.createElement('div');
             popText.className = 'pop-text';
             popText.textContent = '+1';
@@ -161,12 +189,10 @@
             popText.style.top = (this.getBoundingClientRect().top - 20) + 'px';
             document.body.appendChild(popText);
             
-            // Remove pop text after animation
             setTimeout(() => {
               popText.remove();
             }, 1000);
             
-            // Remove heart after pop animation
             setTimeout(() => {
               this.remove();
             }, 300);
@@ -175,7 +201,6 @@
         
         document.body.appendChild(heart);
         
-        // Remove heart if not popped
         setTimeout(() => {
           if (heart && !heart.classList.contains('popped')) {
             heart.remove();
@@ -183,10 +208,8 @@
         }, 9000);
       }
       
-      // Create hearts every 500ms
       setInterval(createHeart, 500);
       
-      // Create initial hearts
       for(let i = 0; i < 5; i++) {
         setTimeout(createHeart, i * 500);
       }
