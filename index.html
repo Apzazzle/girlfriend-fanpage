@@ -15,7 +15,6 @@
       background-color: #f0f0f0;
       font-family: Arial, sans-serif;
       overflow: hidden;
-      cursor: pointer;
     }
     .container {
       position: relative;
@@ -62,7 +61,7 @@
       transform: scale(1.2);
     }
     .heart.popped {
-      animation: pop 0.3s ease-out forwards;
+      animation: pop 0.3s ease-out forwards !important;
     }
     .score-container {
       position: fixed;
@@ -70,10 +69,11 @@
       right: 20px;
       background-color: rgba(0,0,0,0.7);
       color: white;
-      padding: 10px 20px;
+      padding: 15px 30px;
       border-radius: 8px;
-      font-size: 24px;
-      z-index: 3;
+      font-size: 32px;
+      z-index: 1000;
+      font-weight: bold;
     }
     @keyframes float {
       0% {
@@ -103,9 +103,10 @@
       position: absolute;
       color: #ff4d6d;
       font-weight: bold;
-      font-size: 20px;
+      font-size: 24px;
       pointer-events: none;
       animation: popText 1s ease-out forwards;
+      z-index: 1000;
     }
     @keyframes popText {
       0% {
@@ -127,63 +128,69 @@
       <div class="text-overlay">I love my girlfriend</div>
     </div>
   </div>
-  <script>
-    let score = 0;
-    const scoreElement = document.getElementById('score');
 
-    function createHeart() {
-      const heart = document.createElement('div');
-      heart.className = 'heart';
-      heart.innerHTML = '❤️';
-      heart.style.left = Math.random() * 90 + 5 + 'vw';
-      heart.style.animationDuration = (Math.random() * 4.5 + 4.5) + 's';
-      
-      heart.addEventListener('click', () => {
-        if (!heart.classList.contains('popped')) {
-          // Increment score
-          score += 1;
-          scoreElement.textContent = score;
-          
-          // Pop animation
-          heart.classList.add('popped');
-          
-          // Create pop text
-          const popText = document.createElement('div');
-          popText.className = 'pop-text';
-          popText.textContent = '+1';
-          popText.style.left = heart.style.left;
-          popText.style.top = heart.getBoundingClientRect().top + 'px';
-          document.body.appendChild(popText);
-          
-          // Remove pop text after animation
-          setTimeout(() => {
-            popText.remove();
-          }, 1000);
-          
-          // Remove heart after pop animation
-          setTimeout(() => {
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      let score = 0;
+      const scoreElement = document.getElementById('score');
+
+      function createHeart() {
+        const heart = document.createElement('div');
+        heart.className = 'heart';
+        heart.innerHTML = '❤️';
+        heart.style.left = Math.random() * 90 + 5 + 'vw';
+        heart.style.animationDuration = (Math.random() * 4.5 + 4.5) + 's';
+        
+        heart.onclick = function(e) {
+          if (!this.classList.contains('popped')) {
+            // Prevent the click from triggering multiple times
+            e.stopPropagation();
+            
+            // Increment score
+            score += 1;
+            scoreElement.textContent = score;
+            
+            // Pop animation
+            this.classList.add('popped');
+            
+            // Create pop text
+            const popText = document.createElement('div');
+            popText.className = 'pop-text';
+            popText.textContent = '+1';
+            popText.style.left = this.style.left;
+            popText.style.top = (this.getBoundingClientRect().top - 20) + 'px';
+            document.body.appendChild(popText);
+            
+            // Remove pop text after animation
+            setTimeout(() => {
+              popText.remove();
+            }, 1000);
+            
+            // Remove heart after pop animation
+            setTimeout(() => {
+              this.remove();
+            }, 300);
+          }
+        };
+        
+        document.body.appendChild(heart);
+        
+        // Remove heart if not popped
+        setTimeout(() => {
+          if (heart && !heart.classList.contains('popped')) {
             heart.remove();
-          }, 300);
-        }
-      });
+          }
+        }, 9000);
+      }
       
-      document.body.appendChild(heart);
+      // Create hearts every 500ms
+      setInterval(createHeart, 500);
       
-      // Remove heart if not popped
-      setTimeout(() => {
-        if (!heart.classList.contains('popped')) {
-          heart.remove();
-        }
-      }, 6000);
-    }
-    
-    // Create hearts every 500ms (slightly slower to make game more challenging)
-    setInterval(createHeart, 500);
-    
-    // Create initial hearts
-    for(let i = 0; i < 5; i++) {
-      setTimeout(createHeart, i * 500);
-    }
+      // Create initial hearts
+      for(let i = 0; i < 5; i++) {
+        setTimeout(createHeart, i * 500);
+      }
+    });
   </script>
 </body>
 </html> 
