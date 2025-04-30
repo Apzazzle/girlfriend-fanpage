@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>My Girlfriend Fan Page</title>
+  <title>My Girlfriend Fan Page - Heart Popping Game</title>
   <style>
     body {
       margin: 0;
@@ -15,6 +15,7 @@
       background-color: #f0f0f0;
       font-family: Arial, sans-serif;
       overflow: hidden;
+      cursor: pointer;
     }
     .container {
       position: relative;
@@ -49,14 +50,34 @@
     }
     .heart {
       position: absolute;
-      font-size: 24px;
+      font-size: 48px;
       color: #ff4d6d;
-      animation: float 6s ease-in-out infinite;
+      animation: float 9s ease-in-out;
       z-index: 1;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.1s;
+    }
+    .heart:hover {
+      transform: scale(1.2);
+    }
+    .heart.popped {
+      animation: pop 0.3s ease-out forwards;
+    }
+    .score-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background-color: rgba(0,0,0,0.7);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 24px;
+      z-index: 3;
     }
     @keyframes float {
       0% {
-        transform: translateY(0) rotate(0deg);
+        transform: translateY(100vh) rotate(0deg);
         opacity: 1;
       }
       100% {
@@ -64,9 +85,42 @@
         opacity: 0;
       }
     }
+    @keyframes pop {
+      0% {
+        transform: scale(1);
+        opacity: 1;
+      }
+      50% {
+        transform: scale(1.5);
+        opacity: 0.5;
+      }
+      100% {
+        transform: scale(0);
+        opacity: 0;
+      }
+    }
+    .pop-text {
+      position: absolute;
+      color: #ff4d6d;
+      font-weight: bold;
+      font-size: 20px;
+      pointer-events: none;
+      animation: popText 1s ease-out forwards;
+    }
+    @keyframes popText {
+      0% {
+        transform: translateY(0);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(-20px);
+        opacity: 0;
+      }
+    }
   </style>
 </head>
 <body>
+  <div class="score-container">Score: <span id="score">0</span></div>
   <div class="container">
     <div class="image-container">
       <img src="images/GG.png" alt="My Girlfriend">
@@ -74,25 +128,61 @@
     </div>
   </div>
   <script>
+    let score = 0;
+    const scoreElement = document.getElementById('score');
+
     function createHeart() {
       const heart = document.createElement('div');
       heart.className = 'heart';
       heart.innerHTML = '❤️';
-      heart.style.left = Math.random() * 100 + 'vw';
-      heart.style.animationDuration = (Math.random() * 3 + 3) + 's';
+      heart.style.left = Math.random() * 90 + 5 + 'vw';
+      heart.style.animationDuration = (Math.random() * 4.5 + 4.5) + 's';
+      
+      heart.addEventListener('click', () => {
+        if (!heart.classList.contains('popped')) {
+          // Increment score
+          score += 1;
+          scoreElement.textContent = score;
+          
+          // Pop animation
+          heart.classList.add('popped');
+          
+          // Create pop text
+          const popText = document.createElement('div');
+          popText.className = 'pop-text';
+          popText.textContent = '+1';
+          popText.style.left = heart.style.left;
+          popText.style.top = heart.getBoundingClientRect().top + 'px';
+          document.body.appendChild(popText);
+          
+          // Remove pop text after animation
+          setTimeout(() => {
+            popText.remove();
+          }, 1000);
+          
+          // Remove heart after pop animation
+          setTimeout(() => {
+            heart.remove();
+          }, 300);
+        }
+      });
+      
       document.body.appendChild(heart);
       
+      // Remove heart if not popped
       setTimeout(() => {
-        heart.remove();
+        if (!heart.classList.contains('popped')) {
+          heart.remove();
+        }
       }, 6000);
     }
     
-    // Create hearts every 300ms
-    setInterval(createHeart, 300);
+    // Create hearts every 500ms (slightly slower to make game more challenging)
+    setInterval(createHeart, 500);
     
     // Create initial hearts
-    for(let i = 0; i < 10; i++) {
-      setTimeout(createHeart, i * 300);
+    for(let i = 0; i < 5; i++) {
+      setTimeout(createHeart, i * 500);
     }
   </script>
 </body>
