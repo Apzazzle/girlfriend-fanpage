@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>My Girlfriend Fan Page - Heart Popping Game</title>
   <style>
     body {
@@ -15,6 +15,7 @@
       background-color: #f0f0f0;
       font-family: Arial, sans-serif;
       overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
     }
     .container {
       position: relative;
@@ -49,18 +50,16 @@
     }
     .heart {
       position: absolute;
-      font-size: 48px;
+      font-size: 64px; /* Bigger hearts for mobile */
       color: #ff4d6d;
-      animation: float 9s ease-in-out;
+      animation: float 12s linear; /* Slower, linear animation */
       z-index: 1;
       cursor: pointer;
       user-select: none;
-      -webkit-user-select: none;  /* Safari */
-      -webkit-touch-callout: none; /* iOS Safari */
-      touch-action: manipulation;  /* Disable double-tap zoom */
-    }
-    .heart:hover {
-      transform: scale(1.2);
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      touch-action: none; /* Disable all browser touch actions */
+      padding: 15px; /* Larger tap target */
     }
     .heart.popped {
       animation: pop 0.3s ease-out forwards !important;
@@ -79,12 +78,10 @@
     }
     @keyframes float {
       0% {
-        transform: translateY(100vh) rotate(0deg);
-        opacity: 1;
+        transform: translateY(120vh) rotate(0deg);
       }
       100% {
-        transform: translateY(-100vh) rotate(360deg);
-        opacity: 0;
+        transform: translateY(-20vh) rotate(360deg);
       }
     }
     @keyframes pop {
@@ -125,17 +122,14 @@
 <body>
   <div class="score-container">Score: <span id="score">0</span></div>
   
-  <!-- Audio elements with explicit preload -->
+  <!-- Preload audio with lower volume -->
   <audio id="popSound1" preload="auto">
-    <source src="/audio/Heritage.mp3" type="audio/mpeg">
     <source src="audio/Heritage.mp3" type="audio/mpeg">
   </audio>
   <audio id="popSound2" preload="auto">
-    <source src="/audio/Alright.mp3" type="audio/mpeg">
     <source src="audio/Alright.mp3" type="audio/mpeg">
   </audio>
   <audio id="popSound3" preload="auto">
-    <source src="/audio/Beautiful_smile.mp3" type="audio/mpeg">
     <source src="audio/Beautiful_smile.mp3" type="audio/mpeg">
   </audio>
 
@@ -150,6 +144,7 @@
     document.addEventListener('DOMContentLoaded', function() {
       let score = 0;
       let currentSoundIndex = 0;
+      let isAudioInitialized = false;
       const scoreElement = document.getElementById('score');
       const popSounds = [
         document.getElementById('popSound1'),
@@ -157,54 +152,58 @@
         document.getElementById('popSound3')
       ];
 
-      // Initialize audio context for mobile
-      let audioContext;
-      
-      function initAudioContext() {
-        if (!audioContext) {
-          audioContext = new (window.AudioContext || window.webkitAudioContext)();
-          console.log('AudioContext initialized');
+      // Set lower volume for mobile
+      popSounds.forEach(sound => {
+        sound.volume = 0.5;
+      });
+
+      // Initialize audio on first interaction
+      function initAudio() {
+        if (!isAudioInitialized) {
+          isAudioInitialized = true;
+          popSounds.forEach(sound => {
+            sound.load();
+            sound.play().then(() => {
+              sound.pause();
+              sound.currentTime = 0;
+            }).catch(console.error);
+          });
         }
       }
 
-      // Function to play sound with mobile support
+      // Handle both touch and click
+      document.addEventListener('touchstart', initAudio, { once: true });
+      document.addEventListener('click', initAudio, { once: true });
+
       async function playPopSound() {
+        if (!isAudioInitialized) return;
         try {
-          initAudioContext();
           const sound = popSounds[currentSoundIndex];
           sound.currentTime = 0;
           await sound.play();
-          console.log(`Playing sound ${currentSoundIndex + 1}`);
           currentSoundIndex = (currentSoundIndex + 1) % popSounds.length;
         } catch (error) {
           console.error('Error playing sound:', error);
         }
       }
 
-      function handleInteraction(e) {
-        initAudioContext();
-        // Resume audio context on mobile
-        if (audioContext && audioContext.state !== 'running') {
-          audioContext.resume();
-        }
-        document.removeEventListener('touchstart', handleInteraction);
-        document.removeEventListener('click', handleInteraction);
-      }
-
-      // Listen for both touch and click events
-      document.addEventListener('touchstart', handleInteraction);
-      document.addEventListener('click', handleInteraction);
+      let activeHearts = 0;
+      const MAX_HEARTS = 5; // Limit concurrent hearts
 
       function createHeart() {
+        if (activeHearts >= MAX_HEARTS) return;
+        
+        activeHearts++;
         const heart = document.createElement('div');
         heart.className = 'heart';
         heart.innerHTML = '❤️';
-        heart.style.left = Math.random() * 90 + 5 + 'vw';
-        heart.style.animationDuration = (Math.random() * 4.5 + 4.5) + 's';
+        heart.style.left = Math.random() * 80 + 10 + 'vw';
+        heart.style.animationDuration = (Math.random() * 3 + 9) + 's';
         
-        // Handle both touch and click events
         function popHeart(e) {
-          e.preventDefault(); // Prevent default touch behavior
+          e.preventDefault();
+          e.stopPropagation();
+          
           if (!heart.classList.contains('popped')) {
             playPopSound();
             score += 1;
@@ -219,7 +218,10 @@
             document.body.appendChild(popText);
             
             setTimeout(() => popText.remove(), 1000);
-            setTimeout(() => heart.remove(), 300);
+            setTimeout(() => {
+              heart.remove();
+              activeHearts--;
+            }, 300);
           }
         }
 
@@ -231,14 +233,20 @@
         setTimeout(() => {
           if (heart && !heart.classList.contains('popped')) {
             heart.remove();
+            activeHearts--;
           }
-        }, 9000);
+        }, 12000);
       }
       
-      setInterval(createHeart, 500);
+      // Create hearts less frequently on mobile
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      const heartInterval = isMobile ? 1200 : 800;
       
-      for(let i = 0; i < 5; i++) {
-        setTimeout(createHeart, i * 500);
+      setInterval(createHeart, heartInterval);
+      
+      // Start with fewer hearts
+      for(let i = 0; i < 3; i++) {
+        setTimeout(createHeart, i * heartInterval);
       }
     });
   </script>
