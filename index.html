@@ -50,16 +50,20 @@
     }
     .heart {
       position: absolute;
-      font-size: 64px; /* Bigger hearts for mobile */
+      font-size: 64px;
       color: #ff4d6d;
-      animation: float 12s linear; /* Slower, linear animation */
       z-index: 1;
       cursor: pointer;
       user-select: none;
       -webkit-user-select: none;
       -webkit-touch-callout: none;
-      touch-action: none; /* Disable all browser touch actions */
-      padding: 15px; /* Larger tap target */
+      touch-action: none;
+      padding: 15px;
+      opacity: 1;
+      transition: transform 0.2s ease;
+    }
+    .heart:active {
+      transform: scale(0.9);
     }
     .heart.popped {
       animation: pop 0.3s ease-out forwards !important;
@@ -76,27 +80,10 @@
       z-index: 1000;
       font-weight: bold;
     }
-    @keyframes float {
-      0% {
-        transform: translateY(120vh) rotate(0deg);
-      }
-      100% {
-        transform: translateY(-20vh) rotate(360deg);
-      }
-    }
     @keyframes pop {
-      0% {
-        transform: scale(1);
-        opacity: 1;
-      }
-      50% {
-        transform: scale(1.5);
-        opacity: 0.5;
-      }
-      100% {
-        transform: scale(0);
-        opacity: 0;
-      }
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.5); opacity: 0.5; }
+      100% { transform: scale(0); opacity: 0; }
     }
     .pop-text {
       position: absolute;
@@ -108,14 +95,8 @@
       z-index: 1000;
     }
     @keyframes popText {
-      0% {
-        transform: translateY(0);
-        opacity: 1;
-      }
-      100% {
-        transform: translateY(-20px);
-        opacity: 0;
-      }
+      0% { transform: translateY(0); opacity: 1; }
+      100% { transform: translateY(-20px); opacity: 0; }
     }
   </style>
 </head>
@@ -171,7 +152,6 @@
         }
       }
 
-      // Handle both touch and click
       document.addEventListener('touchstart', initAudio, { once: true });
       document.addEventListener('click', initAudio, { once: true });
 
@@ -188,7 +168,15 @@
       }
 
       let activeHearts = 0;
-      const MAX_HEARTS = 5; // Limit concurrent hearts
+      const MAX_HEARTS = 2; // Maximum 2 hearts at a time
+
+      function getRandomPosition() {
+        const padding = 100; // Padding from edges
+        return {
+          x: padding + Math.random() * (window.innerWidth - padding * 2),
+          y: padding + Math.random() * (window.innerHeight - padding * 2)
+        };
+      }
 
       function createHeart() {
         if (activeHearts >= MAX_HEARTS) return;
@@ -197,8 +185,11 @@
         const heart = document.createElement('div');
         heart.className = 'heart';
         heart.innerHTML = '❤️';
-        heart.style.left = Math.random() * 80 + 10 + 'vw';
-        heart.style.animationDuration = (Math.random() * 3 + 9) + 's';
+        
+        // Set random position
+        const pos = getRandomPosition();
+        heart.style.left = pos.x + 'px';
+        heart.style.top = pos.y + 'px';
         
         function popHeart(e) {
           e.preventDefault();
@@ -206,21 +197,28 @@
           
           if (!heart.classList.contains('popped')) {
             playPopSound();
-            score += 1;
-            scoreElement.textContent = score;
+            
+            // Update score with requestAnimationFrame for better performance
+            requestAnimationFrame(() => {
+              score += 1;
+              scoreElement.textContent = score;
+            });
+            
             heart.classList.add('popped');
             
             const popText = document.createElement('div');
             popText.className = 'pop-text';
             popText.textContent = '+1';
             popText.style.left = heart.style.left;
-            popText.style.top = (heart.getBoundingClientRect().top - 20) + 'px';
+            popText.style.top = (parseInt(heart.style.top) - 20) + 'px';
             document.body.appendChild(popText);
             
             setTimeout(() => popText.remove(), 1000);
             setTimeout(() => {
               heart.remove();
               activeHearts--;
+              // Create a new heart after this one is popped
+              setTimeout(createHeart, Math.random() * 1000 + 500);
             }, 300);
           }
         }
@@ -229,25 +227,11 @@
         heart.addEventListener('click', popHeart);
         
         document.body.appendChild(heart);
-        
-        setTimeout(() => {
-          if (heart && !heart.classList.contains('popped')) {
-            heart.remove();
-            activeHearts--;
-          }
-        }, 12000);
       }
       
-      // Create hearts less frequently on mobile
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      const heartInterval = isMobile ? 1200 : 800;
-      
-      setInterval(createHeart, heartInterval);
-      
-      // Start with fewer hearts
-      for(let i = 0; i < 3; i++) {
-        setTimeout(createHeart, i * heartInterval);
-      }
+      // Create initial hearts
+      createHeart();
+      setTimeout(createHeart, 500);
     });
   </script>
 </body>
